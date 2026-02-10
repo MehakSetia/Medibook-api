@@ -8,11 +8,7 @@ function authenticationToken(req,res,next){
     if(token==null){
         return res.status(401).json({error:"Access token required"});
     }
-    console.log("------------------------------------------------");
-    console.log("🔍 Debugging Middleware:");
-    console.log("Token Received:", token.substring(0, 15) + "..."); // Print start of token
-    console.log("Secret being used:", process.env.ACCESS_TOKEN_SECRET); // Check if this is undefined!
-    console.log("------------------------------------------------");
+    
     jwt.verify(token,process.env.ACCESS_TOKEN_SECRET,(err,user)=>{
         if(err){
             console.error("JWT Verification Error: ",err.message);
