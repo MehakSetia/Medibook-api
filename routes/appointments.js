@@ -121,14 +121,15 @@ router.get('/',authenticationToken,async(req,res)=>{
             comingAppoint=await prisma.appointment.findMany({
             where:{
                 patientId:foundId.id,
-                status:"CONFIRMED"
             },
             select:{
                 id:true,
                 status:true,
+                date:true,
                 doctor:{
                     select:{
-                        name:true
+                        name:true,
+                        specialization:true
                     }
                 }
             },
@@ -144,14 +145,15 @@ router.get('/',authenticationToken,async(req,res)=>{
             comingAppoint=await prisma.appointment.findMany({
                 where:{
                     doctorId:foundId.id,
-                    status:"CONFIRMED"
                 },
                 select:{
                     id:true,
                     status:true,
+                    date:true,
                     patient:{
                         select:{
-                            name:true
+                            name:true,
+                            email:true
                         }
                     }
                 },
@@ -164,6 +166,53 @@ router.get('/',authenticationToken,async(req,res)=>{
         console.error("Get Error ",error);
         res.status(500).json({error:"Could not find appointments"});
     }
+});
+
+router.post('/cancel',authenticationToken,async(req,res)=>{
+    try{
+    const {appointId}=req.body;
+    const foundAppoint=await prisma.appointment.findUnique({
+        where:{
+            id:parseInt(appointId)
+        },
+        include:{
+            patient:true
+        }
+    });
+    if(!foundAppoint){
+        return res.status(404).json("Appointment not found");
+    }
+    if(foundAppoint.patient.userId!==req.user.userId){
+        return res.status(403).json("You don't own this appointment");
+    }
+    else if(foundAppoint.status==="CANCELLED"){
+        return res.status(400).json("Appointment already cancelled");
+    }
+    await prisma.$transaction(async (tx)=>{
+        const updateAppoint=await tx.appointment.update({
+            where:{
+                id:parseInt(appointId)
+            },
+            data:{
+                status:"CANCELLED"
+            }
+        });
+        await tx.doctorSlot.updateMany({
+            where:{
+                doctorId:foundAppoint.doctorId,
+                dateTime:foundAppoint.date
+            },
+            data:{
+                isBooked:false
+            }
+        });
+    });
+    res.status(200).json("Appointment cancelled successfully"); 
+}
+catch(error){
+    console.error("Cancellation error");
+    res.status(500).json("Could not cancel the appointment");
+}
 });
 
 module.exports=router;
