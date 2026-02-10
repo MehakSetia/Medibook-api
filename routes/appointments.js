@@ -58,10 +58,10 @@ res.status(201).json({
 });
    }
    catch(error){
-
+    console.error("Transaction failed: ",error);
+    res.status(500).json("Appointment not booked");
    }
 });
-
 
 
 router.patch('/:id/status',authenticationToken,async(req,res)=>{
