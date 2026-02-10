@@ -51,4 +51,95 @@ router.post('/create',authenticationToken,async(req,res)=>{
         res.status(500).json({error:"Failed to create schedule"});
     }
 });
+
+router.get('/:doctorId',authenticationToken,async(req,res)=>{
+    try{
+        const doctorId=req.params.doctorId;
+        const {date}=req.query;
+        const currDate=new Date();
+        
+        const foundDoc=await prisma.doctor.findUnique({
+            where:{
+                id:parseInt(doctorId)
+            }
+        });
+        if(!foundDoc){
+            return res.status(403).json("Doc not found");
+        }
+        let foundSlots=[];
+        if(foundDoc.userId!==req.user.userId){
+        foundSlots=await prisma.doctorSlot.findMany({
+            where:{
+                isBooked:false,
+                dateTime:{
+                    gt:currDate
+                },
+                doctorId:parseInt(doctorId)
+            },
+            orderBy:{
+                dateTime:'asc'
+            }
+        });
+    }
+    else{
+        foundSlots=await prisma.doctorSlot.findMany({
+            where:{
+                dateTime:{
+                    gt:currDate
+                },
+                doctorId:parseInt(doctorId)
+            },
+            orderBy:{
+                dateTime:'asc'
+            }
+        });
+    }
+
+    res.status(201).json(foundSlots);
+
+    }
+    catch(error){
+        console.error("GET Error: ",error);
+        res.status(500).json("Could not get slots");
+    }
+});
+
+router.delete('/remove/:slotId',authenticationToken,async(req,res)=>{
+    try{
+        const {slotId}=req.params;
+        const foundDoc=await prisma.doctor.findUnique({
+            where:{
+                userId:req.user.userId
+            }
+        });
+        if(!foundDoc){
+            return res.status(403).json("Doc not found");
+        }
+        const foundSlot=await prisma.doctorSlot.findUnique({
+            where:{
+                id:parseInt(slotId)
+            }
+        })
+        if(!foundSlot){
+            return res.status(403).json("Slot not found");
+        }
+        if(foundDoc.id!==foundSlot.doctorId){
+            return res.status(403).json("You can not delete someone else's slot");
+        }
+        else if(foundSlot.isBooked===true){
+            return res.status(400).json("Cannot delete a booked slot. Please cancel appointment first.");
+        }
+        await prisma.doctorSlot.delete({
+            where:{
+                id:parseInt(slotId)
+            }
+        });
+        res.status(200).json("Slot deleted");
+    }
+    catch(error){
+        console.error("Delete Error: ",error);
+        res.status(500).json("Could not delete");
+    }
+});
+
 module.exports=router;

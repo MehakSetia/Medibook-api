@@ -7,14 +7,24 @@ const authenticationToken=require('../middleware/auth');
 
 router.post('/',authenticationToken,async (req,res)=>{
    try{
-    const { doctorId,patientId,date }=req.body;
+    const { date }=req.body;
+    const id=await prisma.patient.findUnique({
+        where:{
+            userId:parseInt(req.user.userId)
+        }
+    });
+    if(!id){
+        return res.status(403).json("Only registered patients can book appointments");
+    }
+    const patientId=id.id;
+    const {doctorId}=req.body;
     const foundSlot=await prisma.doctorSlot.findFirst({
         where:{
             doctorId:parseInt(doctorId),
             dateTime:new Date(date)
         }
     });
-    if(foundSlot==null){
+    if(!foundSlot){
         return res.status(404).json("Doc not availabe");
     }
     if(foundSlot.isBooked==true){
@@ -69,6 +79,10 @@ router.patch('/:id/status',authenticationToken,async(req,res)=>{
     const {id}=req.params;
     const {status}=req.body;
 
+    if(status==="CANCELLED"){
+        return res.status(400).json("Use /cancel routes to cancel appointments");
+    }
+
     const foundAppoint=await prisma.appointment.update({
         where:{
             id:parseInt(id)
@@ -77,29 +91,10 @@ router.patch('/:id/status',authenticationToken,async(req,res)=>{
             status:status
         }
     });
-    if(status==="CANCELLED"){
-        const doctorId=foundAppoint.doctorId;
-        const date=foundAppoint.date;
-        
-        const slotToFree= await prisma.doctorSlot.findFirst({
-            where:{
-                doctorId,
-                dateTime:date
-            }
-        });
-        if(slotToFree){
-            await prisma.doctorSlot.update({
-                where:{
-                    id:slotToFree.id
-                },
-                data:{
-                    isBooked:false
-                }
-            })
-        }
-        res.json(foundAppoint);
-    }
+    
+    res.json(foundAppoint);
 }
+
 
     catch(error){
         console.error(error);
@@ -188,6 +183,11 @@ router.post('/cancel',authenticationToken,async(req,res)=>{
     else if(foundAppoint.status==="CANCELLED"){
         return res.status(400).json("Appointment already cancelled");
     }
+    const currDate=new Date();
+    if(new Date(foundAppoint.date)-currDate < 3600000){
+        return res.status(400).json("Too late to cancel");
+    }
+
     await prisma.$transaction(async (tx)=>{
         const updateAppoint=await tx.appointment.update({
             where:{
