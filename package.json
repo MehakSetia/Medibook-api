@@ -1,0 +1,26 @@
+{
+  "name": "medibook-api",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@prisma/client": "^6.19.1",
+    "express": "^5.2.1",
+    "install": "^0.13.0",
+    "nodemon": "^3.1.11",
+    "npm": "^11.7.0",
+    "prisma": "^6.19.1"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "jsonwebtoken": "^9.0.3",
+    "node-cron": "^4.2.1",
+    "nodemailer": "^7.0.12"
+  }
+}
