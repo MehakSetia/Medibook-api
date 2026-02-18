@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+    <h3>Test Razorpay Payment</h3>
+    <button id="rzp-button1">Pay with Razorpay</button>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+        
+        // 👇 PASTE YOUR KEY_ID HERE
+        var key_id = "rzp_test_SExvFBEYzAnTWX";
+
+        // 👇 PASTE THE ORDER_ID FROM POSTMAN HERE
+        var order_id = "order_SGidoTjQynEnsk";
+
+        var options = {
+            "key": key_id,
+            "amount": "50000", // Amount in paise (500 INR)
+            "currency": "INR",
+            "name": "Test Doctor App",
+            "description": "Test Transaction",
+            "order_id": order_id,
+            "handler": function (response) {
+
+                window.prompt("Copy your Signature from here:", response.razorpay_signature);
+                window.prompt("Copy your Payment ID from here:", response.razorpay_payment_id);
+            }
+        };
+        var rzp1 = new Razorpay(options);
+        document.getElementById('rzp-button1').onclick = function (e) {
+            rzp1.open();
+            e.preventDefault();
+        }
+    </script>
+</body>
+
+</html>

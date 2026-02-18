@@ -18,12 +18,13 @@ router.post('/create',authenticationToken,async(req,res)=>{
         if(!user){
             return res.status(403).json("No doc found");
         }
+        const baseDate = date.includes('T') ? date.split('T')[0] : date;
         const startHour=parseInt(startTime.toString().split(':')[0]);
         const endHour=parseInt(endTime.toString().split(':')[0]);
         const slots=[];
         for (let i = startHour; i < endHour; i++) {
             const formattedHour=i.toString().padStart(2,'0');
-            const iso=`${date}T${formattedHour}:00:00Z`;
+            const iso=`${baseDate}T${formattedHour}:00:00Z`;
             const finalDate=new Date(iso);
 
             if(isNaN(finalDate)){

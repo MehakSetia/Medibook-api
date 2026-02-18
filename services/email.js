@@ -32,4 +32,28 @@ const sendAppointEmail=async(patientEmail,docName,date)=>{
         console.error("Error sending email: ",error);
     }
 }
-module.exports={ sendAppointEmail };
+
+const sendCancelEmail=async(patientEmail,docName,date,phone)=>{
+   try{
+    const info=await transporter.sendMail({
+        from: `"MediBook System" <system@medibook.com>`,
+            to: patientEmail,
+            subject: "Appointment Cancelled & Refund Initiated",
+            html: `
+            <h3>Hello!</h3>
+            <p>Your appointment with <b>${docName}</b> is cancelled and amount is refunded.
+            <br>If not yet refunded please wait for sometime.</p>
+            <p>Date: ${date}</p>
+            <br><p>Contact at: ${phone}</p>
+            <p>Thank you,<br>MediBook Team</p>
+            `
+    });
+    console.log("Email sent: %s",info.messageId);
+    console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
+   }
+   catch(error){
+    console.error("Error sending email: ",error);
+   }
+}
+
+module.exports={ sendAppointEmail,sendCancelEmail };

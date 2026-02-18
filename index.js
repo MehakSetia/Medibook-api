@@ -5,9 +5,11 @@ app.use(express.json());
 const doctorRoutes=require('./routes/doctors');
 const patientRoutes=require('./routes/patients');
 const appointmentRoutes=require('./routes/appointments');
-// require('./jobs/cron');
+require('./jobs/cron');
 const authRoutes=require('./routes/auth');
 const scheduleRoutes=require('./routes/schedule');
+const cors = require('cors');
+app.use(cors());
 
 app.use('/doctors',doctorRoutes);
 app.use('/patients',patientRoutes);
