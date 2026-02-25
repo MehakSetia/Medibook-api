@@ -1,4 +1,4 @@
-const path = require('path'); 
+const path = require('path');
 
 const options = {
   definition: {
@@ -9,6 +9,6 @@ const options = {
     },
     servers: [{ url: 'https://medibook-api-1vad.onrender.com' }],
   },
-  
-  apis: [path.join(process.cwd(), 'docs', 'swagger-spec.js')],
+  // This tells Render to look in the 'docs' folder relative to this file
+  apis: [path.join(__dirname, '../docs/swagger-spec.js')], 
 };
