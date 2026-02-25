@@ -8,17 +8,49 @@ module.exports = {
   servers: [{ url: "https://medibook-api-1vad.onrender.com" }],
   paths: {
     "/auth/register": {
-      post: {
-        summary: "Register a new user",
+     post: {
+        summary: "Login and get JWT",
         tags: ["Auth"],
-        responses: { 201: { description: "User registered" } }
-      }
-    },
-    "/auth/login": {
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  email: { type: "string", example: "mehak@example.com" },
+                  password: { type: "string", example: "password123" }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          201: { description: "User registered successfully" }
+        }
+    }
+},
+   "/auth/login": {
       post: {
         summary: "Login and get JWT",
         tags: ["Auth"],
-        responses: { 200: { description: "Returns JWT token" } }
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  email: { type: "string", example: "mehak@example.com" },
+                  password: { type: "string", example: "password123" }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          200: { description: "Returns JWT token" }
+        }
       }
     },
     "/appointments": {
@@ -87,4 +119,5 @@ module.exports = {
       }
     }
   }
-};
+}
+  
