@@ -1,3 +1,5 @@
+const path = require('path'); 
+
 const options = {
   definition: {
     openapi: '3.0.0',
@@ -7,6 +9,6 @@ const options = {
     },
     servers: [{ url: 'https://medibook-api-1vad.onrender.com' }],
   },
-  // Point specifically to your new spec file
-  apis: ['./docs/swagger-spec.js'], 
+  
+  apis: [path.join(__dirname, '../docs/swagger-spec.js')], 
 };
