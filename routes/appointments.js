@@ -2,6 +2,7 @@ const express=require('express');
 const router=express.Router();
 const authenticationToken=require('../middleware/auth');
 const {cancelAppoint, verifyAppoint, updateStatus,getAppoint,createAppoint}=require('../controllers/appointmentController');
+const swagger = require('../config/swagger');
 
 
 router.post('/',authenticationToken,createAppoint);
