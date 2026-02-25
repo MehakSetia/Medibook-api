@@ -1,22 +1,13 @@
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
-const path = require('path');
+const docSpec = require('../docs/swagger-spec.js'); 
 
 const options = {
-  definition: {
-    openapi: '3.0.0',
-    info: {
-      title: 'MediBook API',
-      version: '1.0.0',
-      description: 'API for Doctor Appointment System',
-    },
-    servers: [{ url: 'https://medibook-api-1vad.onrender.com' }],
-  },
-  apis: [], 
+  definition: docSpec, // Use the object directly
+  apis: [], // Leave this empty so it doesn't try to "scan" files
 };
 
 const specs = swaggerJsdoc(options);
-
 
 module.exports = (app) => {
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
