@@ -10,5 +10,5 @@ const options = {
     servers: [{ url: 'https://medibook-api-1vad.onrender.com' }],
   },
   
-  apis: [path.join(__dirname, '../docs/swagger-spec.js')], 
+  apis: [path.join(process.cwd(), 'docs', 'swagger-spec.js')],
 };
