@@ -15,7 +15,6 @@
  * responses:
  * 201:
  * description: User registered
- *
  * /auth/login:
  * post:
  * summary: Login and get JWT
@@ -23,7 +22,6 @@
  * responses:
  * 200:
  * description: Returns JWT token
- *
  * /appointments:
  * post:
  * summary: Create appointment
@@ -41,23 +39,6 @@
  * responses:
  * 200:
  * description: List retrieved
- *
- * /appointments/{id}/status:
- * patch:
- * summary: Update appointment status
- * tags: [Appointments]
- * security:
- * - bearerAuth: []
- * parameters:
- * - in: path
- * name: id
- * required: true
- * schema:
- * type: string
- * responses:
- * 200:
- * description: Updated
- *
  * /appointments/cancel:
  * post:
  * summary: Cancel appointment
@@ -67,14 +48,35 @@
  * responses:
  * 200:
  * description: Cancelled
- *
- * /appointments/verify:
+ * /doctors:
+ * get:
+ * summary: List all doctors
+ * tags: [Doctors]
+ * responses:
+ * 200:
+ * description: Success
+ * /schedule/create:
  * post:
- * summary: Verify appointment (Razorpay)
- * tags: [Appointments]
+ * summary: Create doctor slots
+ * tags: [Schedule]
  * security:
  * - bearerAuth: []
  * responses:
+ * 201:
+ * description: Slots created
+ * /schedule/{doctorId}:
+ * get:
+ * summary: Get doctor schedule
+ * tags: [Schedule]
+ * security:
+ * - bearerAuth: []
+ * parameters:
+ * - in: path
+ * name: doctorId
+ * required: true
+ * schema:
+ * type: string
+ * responses:
  * 200:
- * description: Verified
+ * description: Success
  */
