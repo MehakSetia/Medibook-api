@@ -3,7 +3,7 @@ const swaggerUi = require('swagger-ui-express');
 const docSpec = require('../docs/swagger-spec.js'); 
 
 const options = {
-  definition: docSpec, // Use the object directly
+  swaggerDefinition: swaggerDefinition, // Use the object directly
   apis: [], // Leave this empty so it doesn't try to "scan" files
 };
 
