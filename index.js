@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express=require('express');
+const setupSwagger = require('./config/swagger');
 const app=express();
+setupSwagger(app);
 app.use(express.json());
 const doctorRoutes=require('./routes/doctors');
 const patientRoutes=require('./routes/patients');
