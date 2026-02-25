@@ -1,3 +1,5 @@
+const { type } = require("os");
+
 module.exports = {
   openapi: "3.0.0",
   info: {
@@ -41,7 +43,8 @@ module.exports = {
               schema: {
                 type: "object",
                 properties: {
-                  email: { type: "string", example: "mehak@example.com" },
+                  name:{type:"string",example:"Aa"},
+                  email: { type: "string", example: "a@example.com" },
                   password: { type: "string", example: "password123" }
                 }
               }
