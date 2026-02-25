@@ -1,3 +1,5 @@
+const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
 const path = require('path');
 
 const options = {
@@ -6,9 +8,16 @@ const options = {
     info: {
       title: 'MediBook API',
       version: '1.0.0',
+      description: 'API for Doctor Appointment System',
     },
     servers: [{ url: 'https://medibook-api-1vad.onrender.com' }],
   },
-  // This tells Render to look in the 'docs' folder relative to this file
   apis: [path.join(__dirname, '../docs/swagger-spec.js')], 
+};
+
+const specs = swaggerJsdoc(options);
+
+
+module.exports = (app) => {
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 };
