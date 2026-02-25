@@ -27,6 +27,54 @@ module.exports = {
         tags: ["Appointments"],
         security: [{ bearerAuth: [] }],
         responses: { 200: { description: "Success" } }
+      },
+      post: {
+        summary: "Create appointment",
+        tags: ["Appointments"],
+        security: [{ bearerAuth: [] }],
+        responses: { 201: { description: "Created" } }
+      }
+    },
+    "/appointments/cancel": {
+      post: {
+        summary: "Cancel appointment",
+        tags: ["Appointments"],
+        security: [{ bearerAuth: [] }],
+        responses: { 200: { description: "Cancelled" } }
+      }
+    },
+    "/doctors": {
+      get: {
+        summary: "List all doctors",
+        tags: ["Doctors"],
+        responses: { 200: { description: "Success" } }
+      },
+      post: {
+        summary: "Add doctor details",
+        tags: ["Doctors"],
+        security: [{ bearerAuth: [] }],
+        responses: { 201: { description: "Doctor added" } }
+      }
+    },
+    "/schedule/create": {
+      post: {
+        summary: "Create doctor slots",
+        tags: ["Schedule"],
+        security: [{ bearerAuth: [] }],
+        responses: { 201: { description: "Slots created" } }
+      }
+    },
+    "/schedule/{doctorId}": {
+      get: {
+        summary: "Get doctor schedule",
+        tags: ["Schedule"],
+        parameters: [{
+          in: "path",
+          name: "doctorId",
+          required: true,
+          schema: { type: "string" }
+        }],
+        responses: { 200: { description: "Success" } }
       }
     }
   },
