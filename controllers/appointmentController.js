@@ -12,7 +12,10 @@ const razorpay = new Razorpay({
 
 const createAppoint = async (req, res) => {
     try {
-        const { date } = req.body;
+        const { date,doctorId } = req.body;
+        if(!Number.isInteger(Number(doctorId))){
+            return res.status(400).json("Id should be a number only");
+        }
         const id = await prisma.patient.findUnique({
             where: {
                 userId: parseInt(req.user.userId)
@@ -23,7 +26,7 @@ const createAppoint = async (req, res) => {
             return res.status(403).json("Only registered patients can book appointments");
         }
         const patientId = id.id;
-        const { doctorId } = req.body;
+        
         const foundSlot = await prisma.doctorSlot.findFirst({
             where: {
                 doctorId: parseInt(doctorId),
@@ -42,6 +45,7 @@ const createAppoint = async (req, res) => {
                 id: parseInt(doctorId)
             }
         });
+        
         if (!doctor) {
             return res.status(400).json("Doctor not found");
         }
