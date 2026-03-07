@@ -19,7 +19,15 @@ router.post('/',authenticationToken,async (req,res)=>{
 
 router.get('/',async (req,res)=>{
   try{
-    const docs=await prisma.doctor.findMany();
+    const docs=await prisma.doctor.findMany({
+      select: {
+    id: true,
+    name: true,
+    specialization: true,
+    price: true,
+    phone: true,
+  }
+    });
     res.json(docs);
   }
   catch(error){
