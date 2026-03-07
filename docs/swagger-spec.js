@@ -5,6 +5,20 @@ module.exports = {
     version: "1.0.0",
     description: "Core API for Doctor Appointment Management"
   },
+  security: [
+    {
+      bearerAuth: [],
+    },
+  ],
+  components: {
+  securitySchemes: {
+    bearerAuth: {
+      type: "http",
+      scheme: "bearer",
+      bearerFormat: "JWT",
+    },
+  },
+},
   servers: [{ url: "https://medibook-api-1vad.onrender.com" }],
   paths: {
     "/auth/register": {
