@@ -10,8 +10,8 @@ module.exports = {
   servers: [{ url: "https://medibook-api-1vad.onrender.com" }],
   paths: {
     "/auth/register": {
-     post: {
-        summary: "Login and get JWT",
+      post: {
+        summary: "Register a new user and patient profile",
         tags: ["Auth"],
         requestBody: {
           required: true,
@@ -19,6 +19,40 @@ module.exports = {
             "application/json": {
               schema: {
                 type: "object",
+                required: ["email", "password", "name", "mobile"], // Required by your Prisma models
+                properties: {
+                  name: { type: "string", example: "Mehak Setia" },
+                  email: { type: "string", example: "mehak@example.com" },
+                  password: { type: "string", example: "password123" },
+                  mobile: { type: "string", example: "9876543210" },
+                  role: { 
+                    type: "string", 
+                    enum: ["PATIENT", "DOCTOR"], 
+                    default: "PATIENT",
+                    description: "Defaults to PATIENT based on your Role enum" 
+                  }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          201: { description: "User and Profile created successfully" },
+          400: { description: "Email already exists or invalid input" }
+        }
+      }
+    },
+   "/auth/login": {
+      post: {
+        summary: "Login to get JWT",
+        tags: ["Auth"],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["email", "password"],
                 properties: {
                   email: { type: "string", example: "mehak@example.com" },
                   password: { type: "string", example: "password123" }
@@ -28,31 +62,8 @@ module.exports = {
           }
         },
         responses: {
-          201: { description: "User registered successfully" }
-        }
-    }
-},
-   "/auth/login": {
-      post: {
-        summary: "Login and get JWT",
-        tags: ["Auth"],
-        requestBody: {
-          required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  name:{type:"string",example:"Aa"},
-                  email: { type: "string", example: "a@example.com" },
-                  password: { type: "string", example: "password123" }
-                }
-              }
-            }
-          }
-        },
-        responses: {
-          200: { description: "Returns JWT token" }
+          200: { description: "Success" },
+          401: { description: "Invalid credentials" }
         }
       }
     },
