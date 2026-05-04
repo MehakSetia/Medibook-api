@@ -33,6 +33,14 @@ const createAppoint = async (req, res, next) => {
         });
         const parsedDate = new Date(date);
 
+        const options = {
+                amount: doctor.price * 100,
+                currency: "INR",
+                receipt: "receipt_" + Date.now()
+            };
+
+        const order = await getRazorpay().orders.create(options);
+
         const result = await prisma.$transaction(async (tx) => {
 
             const foundSlot = await prisma.doctorSlot.findFirst({
@@ -57,13 +65,6 @@ const createAppoint = async (req, res, next) => {
                 return res.status(400).json("Doctor not found");
             }
 
-            const options = {
-                amount: doctor.price * 100,
-                currency: "INR",
-                receipt: "receipt_" + Date.now()
-            };
-
-            const order = await getRazorpay().orders.create(options);
             const newAppoint = await tx.appointment.create({
                 data: {
                     doctorId: parseInt(doctorId),
@@ -107,9 +108,17 @@ const createAppoint = async (req, res, next) => {
         });
     }
     catch (error) {
+        if(order?.id){
+            try{
+                await getRazorpay().orders.cancel(order.id);
+            }
+            catch(cancelError){
+                console.log("Order cancel failed: ",cancelError.message);
+            }
+        }
         return next(error);
     }
-}
+};
 
 
 const verifyAppoint = async (req, res, next) => {
