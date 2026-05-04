@@ -1,68 +1,73 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { sendAppointEmail,sendCancelEmail } = require('../services/email');
+const { sendAppointEmail, sendCancelEmail } = require('../services/email');
+const { createAppointSchema, cancelAppointSchema, updateStatusSchema, verifyAppointSchema } = require('../validators/appointmentSchema');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
-const dayjs=require('dayjs');
-const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET
-});
+const dayjs = require('dayjs');
+const { tuple } = require('zod');
+
+// In Docker, env vars are only available at runtime, not at the top-level module load. Any initialization that depends on env vars should be inside a function, not at the top of the file.
+
+let razorpay;
+const getRazorpay = () => {
+    if (!razorpay) {
+        razorpay = new Razorpay({
+            key_id: process.env.RAZORPAY_KEY_ID,
+            key_secret: process.env.RAZORPAY_KEY_SECRET
+        });
+    }
+    return razorpay;
+}
 
 
-const createAppoint = async (req, res) => {
+const createAppoint = async (req, res, next) => {
     try {
-        const { date,doctorId } = req.body;
-        if(!Number.isInteger(Number(doctorId))){
-            return res.status(400).json("Id should be a number only");
-        }
+        const { date, doctorId } = req.body;
+        createAppointSchema.parse(req.body);
+
         const id = await prisma.patient.findUnique({
             where: {
                 userId: parseInt(req.user.userId)
             }
         });
-        const parsedDate=new Date(date);
-        if (!id) {
-            return res.status(403).json("Only registered patients can book appointments");
-        }
-        const patientId = id.id;
-        
-        const foundSlot = await prisma.doctorSlot.findFirst({
-            where: {
-                doctorId: parseInt(doctorId),
-                dateTime: parsedDate
+        const parsedDate = new Date(date);
+
+        const result = await prisma.$transaction(async (tx) => {
+
+            const foundSlot = await prisma.doctorSlot.findFirst({
+                where: {
+                    doctorId: parseInt(doctorId),
+                    dateTime: parsedDate
+                }
+            });
+            if (!foundSlot) {
+                return res.status(404).json("Doc not availabe");
             }
-        });
-        if (!foundSlot) {
-            return res.status(404).json("Doc not availabe");
-        }
-        if (foundSlot.isBooked == true) {
-            return res.status(400).json("Slot already booked");
-        }
-
-        const doctor = await prisma.doctor.findUnique({
-            where: {
-                id: parseInt(doctorId)
+            if (foundSlot.isBooked === true) {
+                return res.status(400).json("Slot already booked");
             }
-        });
-        
-        if (!doctor) {
-            return res.status(400).json("Doctor not found");
-        }
+            const doctor = await prisma.doctor.findUnique({
+                where: {
+                    id: parseInt(doctorId)
+                }
+            });
 
-        const options = {
-            amount: doctor.price * 100,
-            currency: "INR",
-            receipt: "receipt_" + Date.now()
-        };
+            if (!doctor) {
+                return res.status(400).json("Doctor not found");
+            }
 
-const order = await razorpay.orders.create(options);
+            const options = {
+                amount: doctor.price * 100,
+                currency: "INR",
+                receipt: "receipt_" + Date.now()
+            };
 
-const result = await prisma.$transaction(async (tx) => {
+            const order = await getRazorpay().orders.create(options);
             const newAppoint = await tx.appointment.create({
                 data: {
                     doctorId: parseInt(doctorId),
-                    patientId: parseInt(patientId),
+                    patientId: parseInt(patient.id),
                     date: new Date(date),
                     status: "PENDING",
                     orderId: order.id
@@ -80,7 +85,7 @@ const result = await prisma.$transaction(async (tx) => {
                     isBooked: true
                 }
             });
-            return newAppoint;
+            return { newAppoint, order };
         });
         const name = result.doctor.name;
         const mail = result.patient.email;
@@ -102,69 +107,67 @@ const result = await prisma.$transaction(async (tx) => {
         });
     }
     catch (error) {
-        console.error("Transaction failed: ", error);
-        res.status(500).json("Appointment not booked");
+        return next(error);
     }
 }
 
 
-const verifyAppoint = async (req, res) => {
+const verifyAppoint = async (req, res, next) => {
     try {
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature, appointId } = req.body;
+        verifyAppointSchema.parse(req.body);
         let isValid = false;
-        if (process.env.RAZORPAY_KEY_ID.startsWith("mock")) {
+
+        // data body (letter)
+        const body = razorpay_order_id + "|" + razorpay_payment_id;
+
+        // create seal
+        const expectedSignature = crypto
+            .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)          // pick stamp
+            .update(body.toString())      //pour wax
+            .digest('hex');               //get result
+
+        if (expectedSignature === razorpay_signature) {
+            console.log("Signature matched");
             isValid = true;
         }
         else {
-            // data body (letter)
-            const body = razorpay_order_id + "|" + razorpay_payment_id;
-
-            // create seal
-            const expectedSignature = crypto
-                .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)          // pick stamp
-                .update(body.toString())      //pour wax
-                .digest('hex');               //get result
-
-            if (expectedSignature === razorpay_signature) {
-                console.log("Signature matched");
-                isValid = true;
-            }
-            else {
-                console.log("Signature mismatch");
-                isValid = false;
-            }
-            if (isValid) {
-                const updateAppoint = await prisma.appointment.update({
-                    where: {
-                        id: parseInt(appointId)
-                    },
-                    data: {
-                        status: "CONFIRMED",
-                        paymentId: razorpay_payment_id || "mock_payment_id"
-                    }
-                });
-                res.status(200).json({
-                    success: true,
-                    message: "Payment Verified Successfully",
-                    appointId: updateAppoint.id
-                });
-            }
-            else {
-                res.status(400).json({
-                    success: false,
-                    message: "Invalid Signature.Payment failed"
-                });
-            }
+            console.log("Signature mismatch");
+            isValid = false;
+        }
+        if (isValid) {
+            const updateAppoint = await prisma.appointment.update({
+                where: {
+                    id: parseInt(appointId)
+                },
+                data: {
+                    status: "CONFIRMED",
+                    paymentId: razorpay_payment_id
+                }
+            });
+            res.status(200).json({
+                success: true,
+                message: "Payment Verified Successfully",
+                appointId: updateAppoint.id
+            });
+        }
+        else {
+            res.status(400).json({
+                success: false,
+                message: "Invalid Signature.Payment failed"
+            });
         }
     }
+
     catch (error) {
-        console.log("Verify Error: ", error);
-        res.status(500).json({ error: "Verification failed" });
+        return next(error);
     }
 }
 
-const getAppoint = async (req, res) => {
+const getAppoint = async (req, res, next) => {
     try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
         const { userId, role } = req.user;
         let comingAppoint = [];
         if (role === "PATIENT") {
@@ -218,27 +221,36 @@ const getAppoint = async (req, res) => {
         res.json(comingAppoint);
     }
     catch (error) {
-        console.error("Get Error ", error);
-        res.status(500).json({ error: "Could not find appointments" });
+        return next(error);
     }
 }
 
-const cancelAppoint = async (req, res) => {
+const cancelAppoint = async (req, res, next) => {
     try {
-        const { appointId} = req.body;
+        const { appointId } = req.body;
+        cancelAppointSchema.parse(req.body);
         let refundId = null;
 
         const foundAppoint = await prisma.appointment.findFirst({
             where: {
                 id: parseInt(appointId)
             },
-            include: {
-                patient: true,
-                doctor:{
-                    select:{
-                        name:true,
-                        specialization:true,
-                        phone:true
+            select: {
+                id: true,
+                status: true,
+                paymentId: true,
+                doctorId: true,
+                date: true,
+                patient: {
+                    select: {
+                        userId: true,
+                        email: true
+                    }
+                },
+                doctor: {
+                    select: {
+                        name: true,
+                        phone: true
                     }
                 }
             }
@@ -254,19 +266,16 @@ const cancelAppoint = async (req, res) => {
             return res.status(400).json("Appointment already cancelled");
         }
         const currDate = dayjs();
-        const appointDate=dayjs(foundAppoint.date);
-        const diffHour=appointDate.diff(currDate,'hour');
+        const appointDate = dayjs(foundAppoint.date);
+        const diffHour = appointDate.diff(currDate, 'hour');
         if (diffHour < 1) {
             return res.status(400).json("Too late to cancel");
         }
-        
 
-        await prisma.$transaction(async (tx) => {
-            
-            if (foundAppoint.status === "CONFIRMED" && foundAppoint.paymentId) {
-                try{
-                const paymentDetails = await razorpay.payments.fetch(foundAppoint.paymentId);
-                const refund = await razorpay.payments.refund(
+        if (foundAppoint.status === "CONFIRMED" && foundAppoint.paymentId) {
+            try {
+                const paymentDetails = await getRazorpay().payments.fetch(foundAppoint.paymentId);
+                const refund = await getRazorpay().payments.refund(
                     foundAppoint.paymentId, {
                     amount: paymentDetails.amount,
                     notes: {
@@ -276,18 +285,22 @@ const cancelAppoint = async (req, res) => {
                 });
                 refundId = refund.id;
             }
-            catch(razorError){
-                if(razorError.error?.description?.includes("already refunded")){
+            catch (razorError) {
+                if (razorError.error?.description?.includes("already refunded")) {
                     console.log("Payment was already refunded on Razorpay. Syncing DB...");
                 }
                 else {
-                 throw razorError; // Real error, stop here
-              }
+                    throw razorError; // Real error, stop here
+                }
             }
-            }
+        }
 
 
-            const updateAppoint = await tx.appointment.update({
+        await prisma.$transaction(async (tx) => {
+
+
+
+            await tx.appointment.update({
                 where: {
                     id: parseInt(appointId)
                 },
@@ -306,30 +319,27 @@ const cancelAppoint = async (req, res) => {
                 }
             });
         });
-        const dateString=new Date(foundAppoint.date).toDateString();
-        
-    await sendCancelEmail(
-        foundAppoint.patient.email,
-        foundAppoint.doctor.name,
-        dateString,
-        foundAppoint.doctor.phone
-    );
-    res.status(200).json(`Appointment Cancelled and refund initiated: ${refundId}`);
-    
+        const dateString = new Date(foundAppoint.date).toDateString();
+
+        await sendCancelEmail(
+            foundAppoint.patient.email,
+            foundAppoint.doctor.name,
+            dateString,
+            foundAppoint.doctor.phone
+        );
+        return res.status(200).json(`Appointment Cancelled and refund initiated: ${refundId}`);
+
     }
     catch (error) {
-        console.error("Cancellation error: ",error);
-        res.status(500).json({
-            message:"Could not cancel appointment",
-            error:error.message
-        });
+        return next(error);
     }
 }
 
-const updateStatus = async (req, res) => {
+const updateStatus = async (req, res, next) => {
     try {
         const { id } = req.params;
         const { status } = req.body;
+        updateStatusSchema.parse(req.body);
 
         if (status === "CANCELLED") {
             return res.status(400).json("Use /cancel routes to cancel appointments");
@@ -341,14 +351,18 @@ const updateStatus = async (req, res) => {
             },
             data: {
                 status: status
+            },
+            select: {
+                id: true,
+                status: true,
+                date: true
             }
         });
 
-        res.json(foundAppoint);
+        return res.json(foundAppoint);
     }
     catch (error) {
-        console.error(error);
-        res.status(500).json({ error: "Update failed" });
+        return next(error);
     }
 
 }
