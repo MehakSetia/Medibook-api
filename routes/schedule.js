@@ -1,7 +1,7 @@
 const express=require('express');
 const router=express.Router();
 const {createSchedule,getSlots,deleteSlots}=require('../controllers/scheduleContoller');
-const {authenticationToken,requireRole}=('../middleware/auth');
+const {authenticationToken,requireRole}=require('../middleware/auth');
 
 
 router.post('/create',authenticationToken,requireRole('DOCTOR'),createSchedule);
