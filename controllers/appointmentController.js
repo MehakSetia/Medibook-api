@@ -22,28 +22,41 @@ const getRazorpay = () => {
 
 
 const createAppoint = async (req, res, next) => {
+    let order;
     try {
         const { date, doctorId } = req.body;
         createAppointSchema.parse(req.body);
 
-        const id = await prisma.patient.findUnique({
+        const patid = await prisma.patient.findUnique({
             where: {
                 userId: parseInt(req.user.userId)
             }
         });
+
+        const doc=await prisma.doctor.findUnique({
+            where :{
+                id:parseInt(doctorId)
+            }
+        });
+        if(!doc){
+            const err=new Error("Doc not found");
+            err.statusCode=404;
+            return next(err);
+        }
+
         const parsedDate = new Date(date);
 
         const options = {
-                amount: doctor.price * 100,
+                amount: doc.price * 100,
                 currency: "INR",
                 receipt: "receipt_" + Date.now()
             };
 
-        const order = await getRazorpay().orders.create(options);
+        order = await getRazorpay().orders.create(options);
 
         const result = await prisma.$transaction(async (tx) => {
 
-            const foundSlot = await prisma.doctorSlot.findFirst({
+            const foundSlot = await tx.doctorSlot.findFirst({
                 where: {
                     doctorId: parseInt(doctorId),
                     dateTime: parsedDate
@@ -55,28 +68,33 @@ const createAppoint = async (req, res, next) => {
             if (foundSlot.isBooked === true) {
                 return res.status(400).json("Slot already booked");
             }
-            const doctor = await prisma.doctor.findUnique({
-                where: {
-                    id: parseInt(doctorId)
-                }
-            });
-
-            if (!doctor) {
-                return res.status(400).json("Doctor not found");
-            }
 
             const newAppoint = await tx.appointment.create({
                 data: {
                     doctorId: parseInt(doctorId),
-                    patientId: parseInt(patient.id),
+                    patientId: parseInt(patid.id),
                     date: new Date(date),
                     status: "PENDING",
-                    orderId: order.id
+                    orderId: order.id,
                 },
-                include: {
-                    doctor: true,
-                    patient: true
+                select:{
+                    id:true,
+                    date:true,
+                    status:true,
+                doctor:{
+                    select:{
+                        name:true,
+                        specialization:true,
+                        price:true,
+                        phone:true
+                    }
+                },
+                patient:{
+                    select:{
+                        email:true
+                    }
                 }
+            }
             });
             await tx.doctorSlot.update({
                 where: {
@@ -86,7 +104,7 @@ const createAppoint = async (req, res, next) => {
                     isBooked: true
                 }
             });
-            return { newAppoint, order };
+            return newAppoint;
         });
         const name = result.doctor.name;
         const mail = result.patient.email;

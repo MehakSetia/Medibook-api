@@ -1,18 +1,15 @@
 const express=require('express');
 const router=express.Router();
-const authenticationToken=require('../middleware/auth');
+const {authenticationToken,requireRole}=require('../middleware/auth');
 const {cancelAppoint, verifyAppoint, updateStatus,getAppoint,createAppoint}=require('../controllers/appointmentController');
-const swagger = require('../config/swagger');
 
 
-router.post('/',authenticationToken,createAppoint);
 
-router.patch('/:id/status',authenticationToken,updateStatus);
+router.post('/', authenticationToken, requireRole('PATIENT'), createAppoint);
+router.patch('/:id/status', authenticationToken, requireRole('DOCTOR'), updateStatus);
+router.get('/', authenticationToken, getAppoint); 
+router.post('/cancel', authenticationToken, requireRole('PATIENT'), cancelAppoint);
+router.post('/verify', authenticationToken, requireRole('PATIENT'), verifyAppoint);
 
-router.get('/',authenticationToken,getAppoint);
-
-router.post('/cancel',authenticationToken,cancelAppoint);
-
-router.post('/verify',authenticationToken,verifyAppoint);
 
 module.exports=router;
