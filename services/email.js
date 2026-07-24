@@ -1,20 +1,12 @@
-const { Prisma } = require('@prisma/client');
-const nodemailer=require('nodemailer');
+const { Resend } =require('resend');
 
-const transporter=nodemailer.createTransport({
-    host: 'smtp.ethereal.email',
-    port: 587,
-    auth: {
-        
-        user: 'bxbcobr2gqxsap2f@ethereal.email', 
-        pass: 'YCRxwHFM92rKpgxJTe'         
-    }
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 
 const sendAppointEmail=async(patientEmail,docName,date)=>{
     try{
-        const info=await transporter.sendMail({
-            from: `"MediBook System" <system@medibook.com>`,
+        const info=await resend.emails.send({
+            from: `"MediBook System" <onboarding@resend.dev>`,
             to: patientEmail,
             subject: "Appointment Confirmed",
             html: `
@@ -25,8 +17,7 @@ const sendAppointEmail=async(patientEmail,docName,date)=>{
             <p>Thank you,<br>MediBook Team</p>
             `
         });
-        console.log("Email sent: %s",info.messageId);
-        console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
+       
     }
     catch(error){
         console.error("Error sending email: ",error);
@@ -35,8 +26,8 @@ const sendAppointEmail=async(patientEmail,docName,date)=>{
 
 const sendCancelEmail=async(patientEmail,docName,date,phone)=>{
    try{
-    const info=await transporter.sendMail({
-        from: `"MediBook System" <system@medibook.com>`,
+    const info=await resend.emails.send({
+        from: `"MediBook System" <onboarding@resend.dev>`,
             to: patientEmail,
             subject: "Appointment Cancelled & Refund Initiated",
             html: `
@@ -48,8 +39,7 @@ const sendCancelEmail=async(patientEmail,docName,date,phone)=>{
             <p>Thank you,<br>MediBook Team</p>
             `
     });
-    console.log("Email sent: %s",info.messageId);
-    console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
+    
    }
    catch(error){
     console.error("Error sending email: ",error);
