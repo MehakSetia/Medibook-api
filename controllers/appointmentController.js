@@ -63,10 +63,14 @@ const createAppoint = async (req, res, next) => {
                 }
             });
             if (!foundSlot) {
-                return res.status(404).json("Doc not availabe");
+                const err = new Error("Slot not available");
+                err.statusCode = 404;
+                throw err;
             }
             if (foundSlot.isBooked === true) {
-                return res.status(400).json("Slot already booked");
+                const err = new Error("Slot already booked");
+                err.statusCode = 400;
+                throw err;
             }
 
             const newAppoint = await tx.appointment.create({
