@@ -1,7 +1,7 @@
 require('dotenv').config();
 const jwt=require('jsonwebtoken');
 
-function authenticationToken(req,res,next){
+const authenticationToken=async(req,res,next)=>{
     const authHeader=req.headers['authorization'];
     const token=authHeader && authHeader.split(' ')[1];
 
@@ -18,4 +18,14 @@ function authenticationToken(req,res,next){
         next();
     })
 }
-module.exports=authenticationToken;
+
+const requireRole=(role)=>{
+    return (req,res,next)=>{
+        if(req.user.role!==role){
+            return res.status(403).json("Access denied");
+        }
+        next();
+    }
+}
+
+module.exports={authenticationToken,requireRole};
